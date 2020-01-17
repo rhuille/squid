@@ -1,0 +1,3 @@
+toucan-connectors[mongo, mysql, http_api]==0.28.2 
+sqlalchemy
+flake8 # only for dev

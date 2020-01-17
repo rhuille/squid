@@ -1,0 +1,35 @@
+{
+  "CONNECTORS": [
+    {
+      "type": "HttpAPI",
+      "name": "github",
+      "baseroute": "https://api.github.com",
+      "template":{
+        "headers":{"Authorization": "token {{ YOUR GITHUB TOKEN }}"}
+      }
+    },
+    {
+      "type": "Trello",
+      "name": "trello_connector",
+      "token": "{{ YOUR TRELLO TOKEN }}",
+      "key_id": "{{ YOUR TRELLO KEY }}"
+    }
+  ],
+  "DATA_SOURCES": [
+    {
+      "domain": "my_repo",
+      "name": "github",
+      "method": "POST",
+      "filter": ".data.repository.pullRequests.edges[].node?",
+      "url": "/graphql",
+      "json": {
+        "query": "query { repository(owner:\"{{OWNER}}\", name:\"{{YOUR REPO}}\") { pullRequests(last: 100) { edges { node { number mergeable } } } } }"
+      }
+    },
+    {
+      "name": "trello_connector",
+      "domain": "my_board",
+      "board_id": "{{ YOUR BOARD ID }}"
+    }
+  ]
+}
