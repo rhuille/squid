@@ -4,68 +4,46 @@ from typing import Dict
 
 from pandas import DataFrame
 from toucan_connectors import (
-    CONNECTORS_CATALOGUE, ToucanConnector, ToucanDataSource)
+    CONNECTORS_CATALOGUE, ToucanConnector)
 from sqlalchemy import create_engine
 
 
-def connector_and_data_source_from_conf(
-    connector_conf: dict,
-    data_source_conf: dict
-) -> (ToucanConnector, ToucanDataSource):
-    # Get connector and data_source pydantic models:
-    path_to_module, connector_class_name = (
-        CONNECTORS_CATALOGUE[connector_conf['type']].rsplit('.', 1)
-    )
-    connector_module = importlib.import_module(
-        f".{path_to_module}",
-        package="toucan_connectors"
-    )
-    connector_model = getattr(connector_module, connector_class_name)
-    data_source_model = connector_model.data_source_model
+class ToucanConnectorsExecuter():
+    def __init__(self, configuration):
+        connectors_conf = configuration['CONNECTORS']
+        ds_conf = configuration['DATA_SOURCES']
+        self.connectors_conf = dict([(c['name'], c) for c in connectors_conf])
+        self.data_sources_conf = dict([(d['domain'], d) for d in ds_conf])
+        self.domains = [d['domain'] for d in ds_conf]
+        self.connectors = [c['name'] for c in connectors_conf]
 
-    # Apply configuration: (pydantic may raise a Validation error)
-    connector = connector_model(**connector_conf)
-    data_source = data_source_model(**data_source_conf)
+    def _get_connector_model(self, name: str) -> ToucanConnector:
+        connector_conf = self.connectors_conf[name]
+        path_to_module, connector_class_name = (
+            CONNECTORS_CATALOGUE[connector_conf['type']].rsplit('.', 1)
+        )
+        connector_module = importlib.import_module(
+            f".{path_to_module}",
+            package="toucan_connectors"
+        )
+        return getattr(connector_module, connector_class_name)
 
-    return connector, data_source
+    def get_df(self, domain: str) -> DataFrame:
+        data_source_conf = self.data_sources_conf[domain]
+        connector_conf = self.connectors_conf[data_source_conf['name']]
+        #
+        connector_model = self._get_connector_model(connector_conf['name'])
+        data_source_model = connector_model.data_source_model
+        #
+        connector = connector_model(**connector_conf)
+        data_source = data_source_model(**data_source_conf)
+        return connector.get_df(data_source)
 
-
-def get_connector_from_data_source(
-    data_source_conf: dict,
-    configuration: dict
-) -> dict:
-    """
-    From a data source configuration return its corresponding connector
-    configuration
-
-    Example:
-    --------
-    data_source_conf = {'name': 'cerbere', 'domain': 'my_domain', ...}
-    configuration = {
-        'CONNECTORS':[{'name': 'cerbere', 'type': 'HttpAPI', ...}, ...],
-        'DATA_SOURCES':[...]
-    }
-    will return: {'name': 'cerbere', 'type': 'HttpAPI', ...}
-    """
-    for connector_conf in configuration['CONNECTORS']:
-        if connector_conf['name'] == data_source_conf['name']:
-            return connector_conf
-
-
-def toucan_connector_executer(configuration: dict) -> Dict[str, DataFrame]:
-    """
-    Input: a dict of configuration of `ToucanConnectors` and `ToucanDataSource`
-    Output: a dictionary which values are pandas DataFrame
-    """
-    # TODO: `configuration` validation
-    store = {}
-    for data_source_conf in configuration["DATA_SOURCES"]:
-        connector_conf = get_connector_from_data_source(
-            data_source_conf, configuration)
-        connector, data_source = connector_and_data_source_from_conf(
-            connector_conf, data_source_conf)
-        store[data_source_conf['domain']] = connector.get_df(data_source)
-    return store
+    def get_dfs(self) -> Dict[str, DataFrame]:
+        dfs = {}
+        for domain in self.domains:
+            dfs[domain] = self.get_df(domain)
+        return dfs
 
 
 def sql_query_executer(store: Dict[str, DataFrame], query):
