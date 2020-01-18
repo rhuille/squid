@@ -1,17 +1,11 @@
 
 import importlib
-import json
-import sys
+from typing import Dict
 
+from pandas import DataFrame
 from toucan_connectors import (
     CONNECTORS_CATALOGUE, ToucanConnector, ToucanDataSource)
 from sqlalchemy import create_engine
-
-
-def open_configuration():
-    with open(sys.argv[1], "r") as f:
-        configuration = json.load(f)
-    return configuration
 
 
 def connector_and_data_source_from_conf(
@@ -58,27 +52,26 @@ def get_connector_from_data_source(
             return connector_conf
 
 
-def load_data_in_sql(configuration: list, engine):
+def toucan_connector_executer(configuration: dict) -> Dict[str, DataFrame]:
     """
-    From configuration, load all data source in a table in sql engine
+    Input: a dict of configuration of `ToucanConnectors` and `ToucanDataSource`
+    Output: a dictionary which values are pandas DataFrame
     """
+    # TODO: `configuration` validation
+    store = {}
     for data_source_conf in configuration["DATA_SOURCES"]:
         connector_conf = get_connector_from_data_source(
             data_source_conf, configuration)
         connector, data_source = connector_and_data_source_from_conf(
             connector_conf, data_source_conf)
-        df = connector.get_df(data_source)
-        df[df.columns] = df[df.columns].astype(str)
-        df.to_sql(data_source_conf['domain'], con=engine)
-        print(f"{data_source_conf['domain']} loaded")
+        store[data_source_conf['domain']] = connector.get_df(data_source)
+    return store
 
 
-if __name__ == '__main__':
-    engine = create_engine('sqlite://', echo=False)
-    configuration = open_configuration()
-    print('configuration loaded')
-
-    load_data_in_sql(configuration, engine)
-
-    sql_query = input("sql query:")
-    print(engine.execute(sql_query).fetchall())
+def sql_query_executer(store: Dict[str, DataFrame], query):
+    engine = create_engine('sqlite:///:memory:', echo=False)
+    for df_name, df in store.items():
+        # df_name is a str, df is a DataFrame
+        df[df.columns] = df[df.columns].astype(str)  # TODO: remove this line
+        df.to_sql(df_name, con=engine)
+    return engine.execute(query).fetchall()

@@ -14,7 +14,7 @@ Here I propose to simply query the output DataFrame in SQL using `sqlalchemy`
 
 ### How to run the example:
 (Run on python 3.7.4)
-`pip install -r requirements.txt` then: `python -m main example_configuration.json`
+`pip install -r requirements.txt` then: `python -m example example_configuration.json`
 
 
 ### Main requirements: 
