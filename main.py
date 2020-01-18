@@ -46,10 +46,10 @@ class ToucanConnectorsExecuter():
         return dfs
 
 
-def sql_query_executer(store: Dict[str, DataFrame], query):
+def sql_query_executer(store: Dict[str, DataFrame], query) -> DataFrame:
     engine = create_engine('sqlite:///:memory:', echo=False)
     for df_name, df in store.items():
         # df_name is a str, df is a DataFrame
         df[df.columns] = df[df.columns].astype(str)  # TODO: remove this line
-        df.to_sql(df_name, con=engine)
-    return engine.execute(query).fetchall()
+        df.to_sql(df_name, con=engine, index=False)
+    return df.read_sql(query, engine)
