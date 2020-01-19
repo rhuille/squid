@@ -1,6 +1,6 @@
 import sys
 import json
-from main import ToucanConnectorsExecuter, sql_query_executer
+from main import ToucanConnectorsExecuter, SQLAlchemyExecuter
 
 
 if __name__ == '__main__':
@@ -11,5 +11,6 @@ if __name__ == '__main__':
     sql_query = """
     SELECT * FROM trello_kanban_closed
     """
-    result = sql_query_executer(store, sql_query)
+    db = SQLAlchemyExecuter(store)
+    result = db.execute(sql_query, "output").get("output")
     print(result)

@@ -2,7 +2,7 @@
 import importlib
 from typing import Dict
 
-from pandas import DataFrame
+from pandas import DataFrame, read_sql
 from toucan_connectors import (
     CONNECTORS_CATALOGUE, ToucanConnector)
 from sqlalchemy import create_engine
@@ -46,10 +46,18 @@ class ToucanConnectorsExecuter():
         return dfs
 
 
-def sql_query_executer(store: Dict[str, DataFrame], query) -> DataFrame:
-    engine = create_engine('sqlite:///:memory:', echo=False)
-    for df_name, df in store.items():
-        # df_name is a str, df is a DataFrame
-        df[df.columns] = df[df.columns].astype(str)  # TODO: remove this line
-        df.to_sql(df_name, con=engine, index=False)
-    return df.read_sql(query, engine)
+class SQLAlchemyExecuter():
+    languages = "SQL"
+
+    def __init__(self, store: Dict[str, DataFrame]):
+        self.engine = create_engine('sqlite:///:memory:', echo=False)
+        for df_name, df in store.items():
+            # df_name is a str, df is a DataFrame
+            df[df.columns] = df[df.columns].astype(str)  # TODO: remove this line
+            df.to_sql(df_name, con=self.engine, index=False)
+
+    def execute(self, query: str, output_name: str):
+        self.engine.execute(f"create table {output_name} as {query}")
+
+    def get(self, table: str) -> DataFrame:
+        return read_sql(f"select * from {table}", self.engine)
