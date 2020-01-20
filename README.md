@@ -9,7 +9,9 @@ facebook_insights, dataiku...
 Once your connectors configured, you want to query these data 
 (coming from different system) in the same language.
 
-Here I propose to simply query the output DataFrame in SQL using `sqlalchemy`
+Here I propose to query the output DataFrame:
+- in SQL using `sqlalchemy` implemented in `SQLAlchemyExecuter`
+- in `pandas` implemented in `PandasExecuter`
 
 
 ### How to run the example:

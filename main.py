@@ -61,3 +61,19 @@ class SQLAlchemyExecuter():
 
     def get(self, table: str) -> DataFrame:
         return read_sql(f"select * from {table}", self.engine)
+
+
+class PandasExecuter():
+    def __init__(self, store: Dict[str, DataFrame]):
+        self.dfs = store
+
+    def execute(self, query: str, output_name: str):
+        for df_name, df in self.dfs.items():
+            exec(f"{df_name} = df")
+        self.dfs[output_name] = eval(query)
+        for df_name in self.dfs.keys():
+            if df_name != output_name:
+                exec(f"del {df_name}")
+
+    def get(self, table: str) -> DataFrame:
+        return self.dfs[table]
