@@ -48,41 +48,47 @@ class ToucanConnectorsExecuter():
         return dfs
 
 
+# Executer: class with the following methods:
+# __init__(store: Dict[str, DataFrame]) -> Executer
+# execute(query: str, output_name: str) -> Executer
+# get(table: str) -> DataFrame
+# TODO: create a generic parent class
+
 class SQLAlchemyExecuter():
     language = "SQL"
 
     def __init__(self, store: Dict[str, DataFrame]):
-        self.engine = create_engine('sqlite:///:memory:', echo=False)
+        self._engine = create_engine('sqlite:///:memory:', echo=False)
         for df_name, df in store.items():
             # df_name is a str, df is a DataFrame
             df[df.columns] = df[df.columns].astype(str)  # TODO: remove this line
-            df.to_sql(df_name, con=self.engine, index=False)
+            df.to_sql(df_name, con=self._engine, index=False)
 
     def execute(self, query: str, output_name: str):
-        self.engine.execute(f"create table {output_name} as {query}")
+        self._engine.execute(f"create table {output_name} as {query}")
         return self
 
     def get(self, table: str) -> DataFrame:
-        return read_sql(f"select * from {table}", self.engine)
+        return read_sql(f"select * from {table}", self._engine)
 
 
 class PandasExecuter():
     language = "pandas"
 
     def __init__(self, store: Dict[str, DataFrame]):
-        self.dfs = store
+        self._dfs = store
 
     def execute(self, query: str, output_name: str):
-        for df_name, df in self.dfs.items():
+        for df_name, df in self._dfs.items():
             exec(f"{df_name} = df")
-        self.dfs[output_name] = eval(query)
-        for df_name in self.dfs.keys():
+        self._dfs[output_name] = eval(query)
+        for df_name in self._dfs.keys():
             if df_name != output_name:
                 exec(f"del {df_name}")
         return self
 
     def get(self, table: str) -> DataFrame:
-        return self.dfs[table]
+        return self._dfs[table]
 
 
 class RExecuter():
@@ -95,16 +101,16 @@ class RExecuter():
 
     def __init__(self, store: Dict[str, DataFrame]):
         pandas2ri.activate()  # make the DataFrame converted to R on the fly
-        self.renv = robjects
-        self.dfs = store
+        self._renv = robjects
+        self._dfs = store
         for df_name, df in store.items():
             # df_name is a str, df is a DataFrame
-            self.renv.globalenv[df_name] = df
+            self._renv.globalenv[df_name] = df
 
     def execute(self, query: str, output_name: str):
-        self.renv.r(query)  # query is R code
-        self.dfs[output_name] = self.renv.globalenv[output_name]
+        self._renv.r(query)  # query is R code
+        self._dfs[output_name] = self._renv.globalenv[output_name]
         return self
 
     def get(self,  table: str) -> DataFrame:
-        return self.dfs[table]
+        return self._dfs[table]
