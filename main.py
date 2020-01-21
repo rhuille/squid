@@ -6,6 +6,8 @@ from pandas import DataFrame, read_sql
 from toucan_connectors import (
     CONNECTORS_CATALOGUE, ToucanConnector)
 from sqlalchemy import create_engine
+from rpy2 import robjects  # needs to install r: `brew install r` for instance
+from rpy2.robjects import pandas2ri
 
 
 class ToucanConnectorsExecuter():
@@ -76,4 +78,28 @@ class PandasExecuter():
                 exec(f"del {df_name}")
 
     def get(self, table: str) -> DataFrame:
+        return self.dfs[table]
+
+
+class RExecuter():
+    """
+    R executer, based on rpy2:
+    https://rpy2.readthedocs.io/en/latest/
+    main: https://rpy2.readthedocs.io/en/latest/robjects_rinstance.html
+    """
+    languages = "R"
+
+    def __init__(self, store: Dict[str, DataFrame]):
+        pandas2ri.activate()  # make the DataFrame converted to R on the fly
+        self.renv = robjects
+        self.dfs = store
+        for df_name, df in store.items():
+            # df_name is a str, df is a DataFrame
+            self.renv.globalenv[df_name] = df
+
+    def execute(self, query: str, output_name: str):
+        self.renv.r(query)  # query is R code
+        self.dfs[output_name] = self.renv.globalenv[output_name]
+
+    def get(self,  table: str) -> DataFrame:
         return self.dfs[table]

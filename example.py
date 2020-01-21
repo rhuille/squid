@@ -1,6 +1,8 @@
 import sys
 import json
-from main import ToucanConnectorsExecuter, SQLAlchemyExecuter, PandasExecuter
+from main import (
+    ToucanConnectorsExecuter, SQLAlchemyExecuter, PandasExecuter, RExecuter
+)
 
 
 # ToucanTocoConnector usage:
@@ -28,3 +30,12 @@ if __name__ == '__main__':
         .get("output")
     )
 # --> execute a pandas.DataFrame eval code on a store
+
+
+# RExecuter usage:
+    print(
+        RExecuter(store)
+        .execute('df$quantity <- df$A +1; output = df', 'output')
+        .get("output")
+    )
+# --> execute a R code on the store
