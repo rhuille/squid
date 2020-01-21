@@ -26,7 +26,7 @@ if __name__ == '__main__':
 # PandasExecuter usage:
     print(
         PandasExecuter(store)
-        .execute("my_df.replace('CONFLICTING', \"lala\")")
+        .execute("my_df.replace('CONFLICTING', \"lala\")", "output")
         .get("output")
     )
 # --> execute a pandas.DataFrame eval code on a store

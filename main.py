@@ -49,7 +49,7 @@ class ToucanConnectorsExecuter():
 
 
 class SQLAlchemyExecuter():
-    languages = "SQL"
+    language = "SQL"
 
     def __init__(self, store: Dict[str, DataFrame]):
         self.engine = create_engine('sqlite:///:memory:', echo=False)
@@ -60,12 +60,15 @@ class SQLAlchemyExecuter():
 
     def execute(self, query: str, output_name: str):
         self.engine.execute(f"create table {output_name} as {query}")
+        return self
 
     def get(self, table: str) -> DataFrame:
         return read_sql(f"select * from {table}", self.engine)
 
 
 class PandasExecuter():
+    language = "pandas"
+
     def __init__(self, store: Dict[str, DataFrame]):
         self.dfs = store
 
@@ -76,6 +79,7 @@ class PandasExecuter():
         for df_name in self.dfs.keys():
             if df_name != output_name:
                 exec(f"del {df_name}")
+        return self
 
     def get(self, table: str) -> DataFrame:
         return self.dfs[table]
@@ -87,7 +91,7 @@ class RExecuter():
     https://rpy2.readthedocs.io/en/latest/
     main: https://rpy2.readthedocs.io/en/latest/robjects_rinstance.html
     """
-    languages = "R"
+    language = "R"
 
     def __init__(self, store: Dict[str, DataFrame]):
         pandas2ri.activate()  # make the DataFrame converted to R on the fly
@@ -100,6 +104,7 @@ class RExecuter():
     def execute(self, query: str, output_name: str):
         self.renv.r(query)  # query is R code
         self.dfs[output_name] = self.renv.globalenv[output_name]
+        return self
 
     def get(self,  table: str) -> DataFrame:
         return self.dfs[table]
