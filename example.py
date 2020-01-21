@@ -1,7 +1,8 @@
 import sys
 import json
 from main import (
-    ToucanConnectorsExecuter, SQLAlchemyExecuter, PandasExecuter, RExecuter
+    ToucanConnectorsExecuter, SQLAlchemyExecuter,
+    PandasExecuter, RExecuter, MongoExecuter
 )
 
 
@@ -39,3 +40,12 @@ if __name__ == '__main__':
         .get("output")
     )
 # --> execute a R code on the store
+
+
+# MongoExecuter usage:
+    print(
+        MongoExecuter(store)
+        .execute('[{"$addFields": { "new_col": 1} }]', 'output', 'input')
+        .get('output')
+    )
+# --> execute a mongo pipeline the store

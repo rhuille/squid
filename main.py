@@ -1,6 +1,7 @@
 
 import importlib
 from typing import Dict
+import json
 
 from pandas import DataFrame, read_sql
 from toucan_connectors import (
@@ -8,6 +9,7 @@ from toucan_connectors import (
 from sqlalchemy import create_engine
 from rpy2 import robjects  # needs to install r: `brew install r` for instance
 from rpy2.robjects import pandas2ri
+from pymongo import MongoClient
 
 
 class ToucanConnectorsExecuter():
@@ -53,6 +55,25 @@ class ToucanConnectorsExecuter():
 # execute(query: str, output_name: str) -> Executer
 # get(table: str) -> DataFrame
 # TODO: create a generic parent class
+
+
+class MongoExecuter():
+    def __init__(self, store: Dict[str, DataFrame]):
+        self._db = MongoClient().db
+        for df_name, df in store.items():
+            # df_name is a str, df is a DataFrame
+            self._db[df_name].insert_many(df.to_dict('records'))
+
+    def execute(self, query: str, output_name: str, input_name: str):
+        query_json = json.loads(query) + [{"$out": output_name}]
+        self._db[input_name].aggregate(query_json)
+        return self
+
+    def get(self, table: str) -> DataFrame:
+        return DataFrame.from_records(
+            self._db[table].find(projection={"_id": False})
+        )
+
 
 class SQLAlchemyExecuter():
     language = "SQL"
